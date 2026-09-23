@@ -1,0 +1,43 @@
+{
+  "name": "cake-cart",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:seed": "node --loader tsx src/db/seed.ts",
+    "test:qa": "node --loader tsx tests/run-all-tests.ts"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.10.4",
+    "@vercel/blob": "^0.27.1",
+    "bcryptjs": "^3.0.2",
+    "clsx": "^2.1.1",
+    "drizzle-orm": "^0.39.3",
+    "jose": "^5.9.6",
+    "lucide-react": "^0.475.0",
+    "next": "^15.1.7",
+    "pg": "^8.13.3",
+    "qrcode": "^1.5.4",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwind-merge": "^3.0.1"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.13.4",
+    "@types/pg": "^8.11.11",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "autoprefixer": "^10.4.20",
+    "drizzle-kit": "^0.30.4",
+    "postcss": "^8.5.2",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
