@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/db";
+import { ensureDatabaseInitialized } from "@/db/init";
 
 export async function GET(request: NextRequest) {
   try {
+    await ensureDatabaseInitialized().catch(console.error);
+
     const searchParams = request.nextUrl.searchParams;
     const categorySlug = searchParams.get("category");
     const dietarySlug = searchParams.get("dietary");

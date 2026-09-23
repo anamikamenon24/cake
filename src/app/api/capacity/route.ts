@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/db";
+import { ensureDatabaseInitialized } from "@/db/init";
 import { MINIMUM_LEAD_TIME_HOURS } from "@/lib/types";
 
 export async function GET(request: NextRequest) {
   try {
+    await ensureDatabaseInitialized().catch(console.error);
+
     const searchParams = request.nextUrl.searchParams;
     const selectedDate = searchParams.get("date");
 
