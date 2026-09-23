@@ -20,10 +20,9 @@ export interface DbClientLike {
 const globalForDb = globalThis as unknown as {
   conn: DbPoolLike | undefined;
   pgliteInstance: PGlite | undefined;
-  isInitialized: boolean | undefined;
 };
 
-// Async mutex to simulate PostgreSQL row-level locking (SELECT ... FOR UPDATE) on single-instance embedded PGlite
+// Async mutex to simulate PostgreSQL connection isolation for transactions on embedded PGlite
 class SimpleMutex {
   private queue: (() => void)[] = [];
   private locked = false;
@@ -49,6 +48,27 @@ class SimpleMutex {
 }
 
 const pgliteMutex = new SimpleMutex();
+
+function createPgLiteAdapter(pglite: PGlite): DbPoolLike {
+  return {
+    async connect(): Promise<DbClientLike> {
+      const releaseMutex = await pgliteMutex.acquire();
+      return {
+        async query(text: string, params?: unknown[]) {
+          const res = await pglite.query(text, params as any[]);
+          return { rows: res.rows as Record<string, any>[] };
+        },
+        release() {
+          releaseMutex();
+        },
+      };
+    },
+    async query(text: string, params?: unknown[]) {
+      const res = await pglite.query(text, params as any[]);
+      return { rows: res.rows as Record<string, any>[] };
+    },
+  };
+}
 
 let activePool: DbPoolLike;
 
@@ -78,48 +98,7 @@ if (
     const dataDir = path.join(process.cwd(), ".pgdata");
     globalForDb.pgliteInstance = new PGlite(dataDir);
   }
-
-  const pglite = globalForDb.pgliteInstance;
-
-  async function ensureTables() {
-    if (globalForDb.isInitialized) return;
-    try {
-      const check = await pglite.query(`SELECT to_regclass('public.products') as exists`);
-      if (!check.rows[0]?.exists) {
-        const { seedDatabase } = await import("./seed");
-        await seedDatabase();
-      }
-      globalForDb.isInitialized = true;
-    } catch {
-      // If error occurs, continue
-    }
-  }
-
-  activePool = {
-    async connect(): Promise<DbClientLike> {
-      const releaseMutex = await pgliteMutex.acquire();
-      await ensureTables();
-      return {
-        async query(text: string, params?: unknown[]) {
-          const res = await pglite.query(text, params as any[]);
-          return { rows: res.rows as Record<string, any>[] };
-        },
-        release() {
-          releaseMutex();
-        },
-      };
-    },
-    async query(text: string, params?: unknown[]) {
-      const releaseMutex = await pgliteMutex.acquire();
-      try {
-        await ensureTables();
-        const res = await pglite.query(text, params as any[]);
-        return { rows: res.rows as Record<string, any>[] };
-      } finally {
-        releaseMutex();
-      }
-    },
-  };
+  activePool = globalForDb.conn ?? createPgLiteAdapter(globalForDb.pgliteInstance);
 }
 
 if (process.env.NODE_ENV !== "production") {
